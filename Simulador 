@@ -1,0 +1,706 @@
+import { useState, useCallback } from "react";
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DADOS
+// ══════════════════════════════════════════════════════════════════════════════
+const EST_BASE = () => ({
+  Brasileirao:{gols:0,assistencias:0,jogos:0},
+  Libertadores:{gols:0,assistencias:0,jogos:0},
+  Sulamericana:{gols:0,assistencias:0,jogos:0},
+  CopaBrasil:{gols:0,assistencias:0,jogos:0},
+});
+
+const mkJ = (n,p,o) => ({nome:n,posicao:p,ovr:o,idade:Math.floor(Math.random()*15)+20,potencial:Math.floor(Math.random()*3)+1,estatisticas:EST_BASE()});
+
+const TIMES_INIT = [
+  {nome:"Flamengo",saldo:1200000,jogadores:[mkJ("Rossi","GOL",85),mkJ("Varela","DEF",80),mkJ("Léo Ortiz","DEF",82),mkJ("Léo Pereira","DEF",83),mkJ("Ayrton Lucas","DEF",80),mkJ("Pulgar","MEI",81),mkJ("De la Cruz","MEI",84),mkJ("Arrascaeta","MEI",86),mkJ("Gerson","MEI",83),mkJ("Gabigol","ATA",85),mkJ("Bruno Henrique","ATA",80)]},
+  {nome:"Palmeiras",saldo:1100000,jogadores:[mkJ("Weverton","GOL",86),mkJ("Marcos Rocha","DEF",79),mkJ("Gustavo Gómez","DEF",84),mkJ("Murilo","DEF",82),mkJ("Piquerez","DEF",81),mkJ("Zé Rafael","MEI",80),mkJ("Aníbal Moreno","MEI",81),mkJ("Raphael Veiga","MEI",84),mkJ("Estêvão","ATA",85),mkJ("Rony","ATA",80),mkJ("Flaco López","ATA",82)]},
+  {nome:"Atletico-MG",saldo:900000,jogadores:[mkJ("Everson","GOL",75),mkJ("Lyanco","DEF",75),mkJ("Renan Lodi","DEF",78),mkJ("Ivan Romano","DEF",75),mkJ("Natanael","DEF",72),mkJ("Gustavo Scarpa","MEI",79),mkJ("Bernard","MEI",71),mkJ("Reinier","MEI",76),mkJ("Alan Franco","MEI",72),mkJ("Hulk","ATA",83),mkJ("Dudu","ATA",74)]},
+  {nome:"Botafogo",saldo:950000,jogadores:[mkJ("Leo Linck","GOL",79),mkJ("Alex Telles","DEF",78),mkJ("Bastos","DEF",79),mkJ("Barboza","DEF",82),mkJ("Vitinho","DEF",77),mkJ("Danilo","MEI",84),mkJ("Montoro","MEI",80),mkJ("Cristian Medina","MEI",79),mkJ("Artur","MEI",81),mkJ("Lucas Villalba","ATA",78),mkJ("Arthur Cabral","ATA",75)]},
+  {nome:"Sao Paulo",saldo:1000000,jogadores:[mkJ("Rafael","GOL",82),mkJ("Igor Vinícius","DEF",76),mkJ("Arboleda","DEF",81),mkJ("Alan Franco","DEF",79),mkJ("Welington","DEF",77),mkJ("Pablo Maia","MEI",79),mkJ("Alisson","MEI",80),mkJ("Lucas","MEI",81),mkJ("Ferreira","ATA",79),mkJ("Calleri","ATA",83),mkJ("Luciano","ATA",80)]},
+  {nome:"Internacional",saldo:950000,jogadores:[mkJ("Rochet","GOL",83),mkJ("Bustos","DEF",77),mkJ("Vitão","DEF",79),mkJ("Clayton Sampaio","DEF",75),mkJ("Renê","DEF",76),mkJ("Rômulo","MEI",77),mkJ("Bruno Henrique","MEI",78),mkJ("Alan Patrick","MEI",82),mkJ("Wesley","ATA",80),mkJ("Borré","ATA",82),mkJ("Alario","ATA",78)]},
+  {nome:"Gremio",saldo:900000,jogadores:[mkJ("Marchesín","GOL",82),mkJ("João Pedro","DEF",76),mkJ("Geromel","DEF",78),mkJ("Kannemann","DEF",80),mkJ("Reinaldo","DEF",77),mkJ("Villasanti","MEI",79),mkJ("Pepê","MEI",81),mkJ("Cristaldo","MEI",82),mkJ("Nathan Fernandes","ATA",76),mkJ("Everton Galdino","ATA",77),mkJ("Diego Costa","ATA",79)]},
+  {nome:"Corinthians",saldo:950000,jogadores:[mkJ("Hugo Souza","GOL",81),mkJ("Matheuzinho","DEF",76),mkJ("Félix Torres","DEF",80),mkJ("André Ramalho","DEF",78),mkJ("Hugo","DEF",74),mkJ("Raniele","MEI",77),mkJ("Charles","MEI",79),mkJ("Rodrigo Garro","MEI",82),mkJ("Memphis Depay","ATA",84),mkJ("Yuri Alberto","ATA",81),mkJ("Pedro Raul","ATA",76)]},
+  {nome:"Fluminense",saldo:900000,jogadores:[mkJ("Fábio","GOL",82),mkJ("Samuel Xavier","DEF",76),mkJ("Thiago Santos","DEF",79),mkJ("Manoel","DEF",77),mkJ("Diogo Barbosa","DEF",76),mkJ("André","MEI",84),mkJ("Martinelli","MEI",78),mkJ("Ganso","MEI",80),mkJ("Keno","ATA",76),mkJ("Jhon Arias","ATA",82),mkJ("Germán Cano","ATA",83)]},
+  {nome:"Athletico-PR",saldo:850000,jogadores:[mkJ("Gabriel Brazão","GOL",84),mkJ("Léo Pereira","DEF",79),mkJ("Adilson Malanda","DEF",73),mkJ("Rodrigo Huescas","DEF",78),mkJ("Arthur Dias","DEF",78),mkJ("Gregore","MEI",79),mkJ("Patrik Mercado","MEI",78),mkJ("Bruno Zapelli","MEI",82),mkJ("Robinho Júnior","ATA",75),mkJ("Wesley Patati","ATA",80),mkJ("Kevin Viveros","ATA",82)]},
+  {nome:"Bahia",saldo:800000,jogadores:[mkJ("Ronaldo","GOL",74),mkJ("Gabriel Xavier","DEF",78),mkJ("Santiago Mingo","DEF",73),mkJ("Luciano Juba","DEF",78),mkJ("Roman Gomez","DEF",70),mkJ("Nicolas Acevedo","MEI",74),mkJ("Jean Lucas","MEI",78),mkJ("Everton Ribeiro","MEI",76),mkJ("Everaldo","ATA",76),mkJ("Willian José","ATA",75),mkJ("Erick Pulga","ATA",78)]},
+  {nome:"Cruzeiro",saldo:850000,jogadores:[mkJ("Cássio","GOL",83),mkJ("William","DEF",76),mkJ("Zé Ivaldo","DEF",78),mkJ("Villalba","DEF",75),mkJ("Kaio Jorge","DEF",72),mkJ("Lucas Silva","MEI",77),mkJ("Matheus Henrique","MEI",80),mkJ("Ramiro","MEI",74),mkJ("Lautaro Díaz","ATA",76),mkJ("Dudu","ATA",78),mkJ("Arthur Gomes","ATA",75)]},
+  {nome:"Fortaleza",saldo:800000,jogadores:[mkJ("João Ricardo","GOL",80),mkJ("Tinga","DEF",75),mkJ("Titi","DEF",78),mkJ("Brítez","DEF",74),mkJ("Felipe Jonathan","DEF",73),mkJ("Hércules","MEI",76),mkJ("Pochettino","MEI",78),mkJ("Lucas Sasha","MEI",77),mkJ("Marinho","ATA",78),mkJ("Moisés","ATA",75),mkJ("Lucero","ATA",80)]},
+  {nome:"Vasco",saldo:800000,jogadores:[mkJ("Léo Jardim","GOL",80),mkJ("Puma Rodríguez","DEF",76),mkJ("Maicon","DEF",77),mkJ("João Victor","DEF",79),mkJ("Lucas Piton","DEF",77),mkJ("Matheus Carvalho","MEI",76),mkJ("Galdames","MEI",78),mkJ("Payet","MEI",82),mkJ("David","ATA",80),mkJ("Vegetti","ATA",82),mkJ("Rayan","ATA",77)]},
+  {nome:"Santos",saldo:780000,jogadores:[mkJ("João Paulo","GOL",81),mkJ("JP Chermont","DEF",75),mkJ("Gil","DEF",77),mkJ("Joaquim","DEF",76),mkJ("Aderlan","DEF",74),mkJ("João Schmidt","MEI",78),mkJ("Diego Pituca","MEI",79),mkJ("Giuliano","MEI",76),mkJ("Otero","ATA",77),mkJ("Willian Bigode","ATA",74),mkJ("Furch","ATA",80)]},
+  {nome:"RB Bragantino",saldo:820000,jogadores:[mkJ("Cleiton","GOL",82),mkJ("Andrés Hurtado","DEF",75),mkJ("Pedro Henrique","DEF",77),mkJ("Eduardo Santos","DEF",74),mkJ("Luan Cândido","DEF",76),mkJ("Jadsom Silva","MEI",76),mkJ("Jhon Jhon","MEI",78),mkJ("Lucas Evangelista","MEI",79),mkJ("Helinho","ATA",78),mkJ("Eduardo Sasha","ATA",76),mkJ("Thiago Borbas","ATA",77)]},
+  {nome:"Chapecoense",saldo:700000,jogadores:[mkJ("Léo Vieira","GOL",81),mkJ("Everton","DEF",78),mkJ("Victor Caetano","DEF",77),mkJ("Bruno Leonardo","DEF",79),mkJ("Eduardo Doma","DEF",74),mkJ("Camilo","MEI",75),mkJ("Rafael Carvalheira","MEI",76),mkJ("Giovanni Augusto","MEI",74),mkJ("Maurício Garcez","MEI",74),mkJ("Yannick Bolasie","ATA",71),mkJ("Italo","ATA",77)]},
+  {nome:"Juventude",saldo:680000,jogadores:[mkJ("Gabriel","GOL",76),mkJ("Reginaldo","DEF",72),mkJ("Danilo Boza","DEF",74),mkJ("Rodrigo Sam","DEF",73),mkJ("Alan Ruschel","DEF",71),mkJ("Mandaca","MEI",75),mkJ("Jadson","MEI",74),mkJ("Batalla","MEI",73),mkJ("Lucas Barbosa","ATA",74),mkJ("Gilberto","ATA",76),mkJ("Ênio","ATA",75)]},
+  {nome:"Sport",saldo:650000,jogadores:[mkJ("Mailson","GOL",74),mkJ("Igor Cariús","DEF",72),mkJ("Rafael Thyere","DEF",75),mkJ("Chico","DEF",73),mkJ("Felipinho","DEF",70),mkJ("Fabinho","MEI",74),mkJ("Barletta","MEI",76),mkJ("Luciano Juba","MEI",75),mkJ("Romarinho","ATA",74),mkJ("Gustavo Coutinho","ATA",73),mkJ("Zé Roberto","ATA",72)]},
+  {nome:"Cuiaba",saldo:640000,jogadores:[mkJ("Walter","GOL",73),mkJ("Marllon","DEF",72),mkJ("Alan Empereur","DEF",74),mkJ("Joaquim","DEF",71),mkJ("Rikelme","DEF",70),mkJ("Denilson","MEI",72),mkJ("Filipe Augusto","MEI",74),mkJ("Max","MEI",73),mkJ("André Luís","ATA",73),mkJ("Deyverson","ATA",76),mkJ("Jonathan Cafú","ATA",74)]},
+].map(t=>({...t,estatisticas:{pontos:0,vitorias:0,empates:0,derrotas:0,gols_pro:0,gols_contra:0},forma:0,moral:0}));
+
+// ── Engine ────────────────────────────────────────────────────────────────────
+const POS_MAP = {GOL:"GOL",DEF:"ZAG",ZAG:"ZAG",MEI:"MEI",ATA:"ATA"};
+const ORDEM = ["GOL","ZAG","MEI","ATA"];
+const COR_POS = {GOL:"#f59e0b",ZAG:"#3b82f6",MEI:"#10b981",ATA:"#ef4444"};
+
+function ovrTime(t){
+  if(!t.jogadores.length) return 0;
+  return Math.round(t.jogadores.reduce((s,j)=>s+j.ovr,0)/t.jogadores.length);
+}
+
+function simPartida(a,b){
+  const fa = ovrTime(a), fb = ovrTime(b);
+  const diff = fa - fb;
+  const pA = 0.5 + diff*0.012 + (Math.random()-0.5)*0.3;
+  const gA = Math.max(0,Math.round(Math.random()*3 + (pA>0.55?0.5:0)));
+  const gB = Math.max(0,Math.round(Math.random()*3 + (pA<0.45?0.5:0)));
+  return [gA,gB];
+}
+
+function gerarMercado(){
+  const NOMES = ["Gabriel Silva","Lucas Santos","Matheus Costa","Rafael Lima","Bruno Gomes","Felipe Souza","Diego Rocha","Rodrigo Alves","Thiago Ferreira","Eduardo Pereira","Carlos Mendes","Arthur Vieira","Gustavo Nunes","Caio Ribeiro","Victor Cruz","Pedro Campos","Vinicius Dias","Kaique Pinto","Enzo Melo","Luan Batista"];
+  let ni=0;
+  const nome=()=>{const n=NOMES[ni%NOMES.length];ni++;return n+(ni>NOMES.length?` ${Math.floor(ni/NOMES.length)}`:"")}
+  const mk=(pos,cat,est)=>{
+    const ranges={promessa:{1:[64,69],2:[70,74],3:[75,79]},auge:{1:[72,76],2:[77,80],3:[81,84]},veterano:{1:[70,74],2:[75,78],3:[79,82]}};
+    const idades={promessa:[17,23],auge:[24,30],veterano:[31,37]};
+    const [lo,hi]=ranges[cat][est];
+    const ovr=lo+Math.floor(Math.random()*(hi-lo+1));
+    const [ilo,ihi]=idades[cat];
+    const idade=ilo+Math.floor(Math.random()*(ihi-ilo+1));
+    const preco=Math.max(20,Math.round((ovr*0.6+est*15)*(idade<=21?1.4:idade<=30?1.0:0.7)*[0.7,1.0,1.5][est-1]));
+    return {jogador:{nome:nome(),posicao:pos,ovr,idade,potencial:est,estatisticas:EST_BASE()},preco,clube_origem:"Mercado",faixa:cat,estrelas:est};
+  };
+  const mkt={};
+  for(const pos of ORDEM){
+    mkt[pos]=[];
+    for(const cat of ["promessa","auge","veterano"])
+      for(const est of [1,2,3])
+        mkt[pos].push(mk(pos,cat,est));
+  }
+  return mkt;
+}
+
+function gerarCalendario(times){
+  const n=times.length, rodadas=[];
+  const ids=[...Array(n).keys()];
+  for(let r=0;r<n-1;r++){
+    const rodada=[];
+    for(let i=0;i<n/2;i++){
+      const a=ids[i],b=ids[n-1-i];
+      rodada.push([a,b]);
+    }
+    rodadas.push(rodada);
+    ids.splice(1,0,ids.pop());
+  }
+  // Turno + returno
+  return [...rodadas,...rodadas.map(r=>r.map(([a,b])=>[b,a]))];
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COMPONENTES UI
+// ══════════════════════════════════════════════════════════════════════════════
+const ESTRELA={1:"★☆☆",2:"★★☆",3:"★★★"};
+const FAIXA_L={promessa:"PROM",auge:"AUGE",veterano:"VET"};
+
+function Badge({pos}){
+  return <span style={{background:COR_POS[POS_MAP[pos]]||"#666",color:pos==="GOL"?"#1a1a1a":"#fff",borderRadius:4,padding:"2px 7px",fontSize:11,fontWeight:700,letterSpacing:1}}>{pos}</span>;
+}
+function OvrBadge({ovr}){
+  const c=ovr>=82?"#10b981":ovr>=76?"#f59e0b":"#ef4444";
+  return <span style={{color:c,fontWeight:800,fontSize:14}}>{ovr}</span>;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MERCADO
+// ══════════════════════════════════════════════════════════════════════════════
+function TelaVenda({clube,mkt,onVender,onPular}){
+  const [pos,setPos]=useState("GOL");
+  const [sel,setSel]=useState(null);
+  const [preco,setPreco]=useState("");
+  const [confirm,setConfirm]=useState(false);
+
+  const jogs=clube.jogadores.filter(j=>POS_MAP[j.posicao]===pos||j.posicao===pos);
+  const precBase=j=>Math.max(20,Math.round((j.ovr*0.6+(j.potencial||2)*10*0.4)*((j.idade||25)<=21?1.4:(j.idade||25)<=30?1.0:(j.idade||25)<=31?0.8:0.5)));
+
+  return(
+    <div style={{background:"#13131f",border:"2px solid #f59e0b",borderRadius:10,padding:16}}>
+      <div style={{color:"#f59e0b",fontWeight:800,marginBottom:10}}>★ {clube.nome} — VENDAS</div>
+      <div style={{fontSize:12,color:"#94a3b8",marginBottom:12}}>Saldo: {clube.saldo.toLocaleString("pt-BR")} pts</div>
+      <div style={{display:"flex",gap:6,marginBottom:12}}>
+        {ORDEM.map(p=><button key={p} onClick={()=>{setPos(p);setSel(null);setConfirm(false)}} style={{
+          background:pos===p?COR_POS[p]:"#1e1e2e",color:pos===p?"#fff":"#64748b",
+          border:"none",borderRadius:5,padding:"4px 12px",cursor:"pointer",fontWeight:700,fontSize:12
+        }}>{p}</button>)}
+      </div>
+      {jogs.length===0?<div style={{color:"#475569",fontSize:13}}>Sem jogadores nessa posição.</div>:
+      <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:10}}>
+        {[...jogs].sort((a,b)=>b.ovr-a.ovr).map((j,i)=>(
+          <div key={i} onClick={()=>{setSel(j);setPreco(precBase(j).toString());setConfirm(false)}} style={{
+            display:"flex",alignItems:"center",justifyContent:"space-between",
+            padding:"6px 10px",borderRadius:6,
+            background:sel===j?"#1e3a2e":"#1a1a2e",
+            border:`1px solid ${sel===j?"#10b981":"#2a2a3a"}`,cursor:"pointer"
+          }}>
+            <div>
+              <span style={{fontWeight:600,fontSize:13}}>{j.nome}</span>
+              <span style={{fontSize:11,color:"#64748b",marginLeft:8}}>OVR:{j.ovr} · {j.idade||"?"}a · Pot:{j.potencial||2}</span>
+            </div>
+            <span style={{fontSize:11,color:"#94a3b8"}}>{precBase(j).toLocaleString("pt-BR")} pts</span>
+          </div>
+        ))}
+      </div>}
+      {sel&&!confirm&&(
+        <div style={{background:"#0d1117",borderRadius:8,padding:12,marginBottom:10}}>
+          <div style={{fontSize:13,color:"#e2e8f0",marginBottom:8}}>Preço de venda para <b>{sel.nome}</b>:</div>
+          <input value={preco} onChange={e=>setPreco(e.target.value)} style={{
+            background:"#1e1e2e",border:"1px solid #3b82f6",borderRadius:6,
+            color:"#e2e8f0",padding:"6px 10px",fontSize:14,width:"140px",marginRight:8
+          }}/>
+          <button onClick={()=>setConfirm(true)} style={{background:"#ef4444",color:"#fff",border:"none",borderRadius:6,padding:"6px 14px",cursor:"pointer",fontWeight:700}}>Vender</button>
+        </div>
+      )}
+      {sel&&confirm&&(
+        <div style={{background:"#1a0a0a",border:"1px solid #ef4444",borderRadius:8,padding:12,marginBottom:10}}>
+          <div style={{fontSize:13,color:"#fca5a5",marginBottom:8}}>
+            Confirmar venda de <b>{sel.nome}</b> por <b>{parseInt(preco)||0} pts</b>?
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{onVender(sel,parseInt(preco)||0,pos);setSel(null);setConfirm(false)}} style={{background:"#ef4444",color:"#fff",border:"none",borderRadius:6,padding:"6px 14px",cursor:"pointer",fontWeight:700}}>Confirmar</button>
+            <button onClick={()=>setConfirm(false)} style={{background:"#2a2a3a",color:"#94a3b8",border:"none",borderRadius:6,padding:"6px 14px",cursor:"pointer"}}>Cancelar</button>
+          </div>
+        </div>
+      )}
+      <button onClick={onPular} style={{background:"#2a2a3a",color:"#94a3b8",border:"none",borderRadius:6,padding:"7px 16px",cursor:"pointer",fontSize:13}}>
+        Não vender nada →
+      </button>
+    </div>
+  );
+}
+
+function TelaCompra({clube,pos,mkt,outrosClubs,onComprar,onPular}){
+  const [sel,setSel]=useState(null);
+  const saldo=clube.saldo;
+  const fila=mkt[pos]||[];
+
+  return(
+    <div style={{background:"#13131f",border:"2px solid #10b981",borderRadius:10,padding:16}}>
+      <div style={{color:"#10b981",fontWeight:800,marginBottom:6}}>★ {clube.nome} — COMPRAR <Badge pos={pos}/></div>
+      <div style={{fontSize:12,color:"#94a3b8",marginBottom:12}}>Saldo: {saldo.toLocaleString("pt-BR")} pts</div>
+      {fila.length===0?<div style={{color:"#475569",fontSize:13}}>Mercado de {pos} vazio.</div>:
+      <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 60px 50px 50px 90px 60px",gap:4,fontSize:11,color:"#64748b",padding:"0 8px",marginBottom:2}}>
+          <span>Nome</span><span>Faixa</span><span>Est</span><span>OVR</span><span>Preço</span><span></span>
+        </div>
+        {[...fila].sort((a,b)=>b.jogador.ovr-a.jogador.ovr).map((e,i)=>{
+          const pode=e.preco<=saldo;
+          return(
+            <div key={i} onClick={()=>pode&&setSel(e)} style={{
+              display:"grid",gridTemplateColumns:"1fr 60px 50px 50px 90px 60px",
+              alignItems:"center",gap:4,padding:"6px 8px",borderRadius:6,
+              background:sel===e?"#0a2a1a":"#1a1a2e",
+              border:`1px solid ${sel===e?"#10b981":"#2a2a3a"}`,
+              opacity:pode?1:0.45,cursor:pode?"pointer":"not-allowed"
+            }}>
+              <div>
+                <div style={{fontWeight:600,fontSize:12}}>{e.jogador.nome}</div>
+                <div style={{fontSize:10,color:"#64748b"}}>{e.clube_origem} · {e.jogador.idade}a</div>
+              </div>
+              <span style={{fontSize:11,color:"#94a3b8"}}>{FAIXA_L[e.faixa]||"LIV"}</span>
+              <span style={{fontSize:12}}>{ESTRELA[e.estrelas]||"?"}</span>
+              <OvrBadge ovr={e.jogador.ovr}/>
+              <span style={{fontSize:11,color:pode?"#10b981":"#64748b"}}>{e.preco.toLocaleString("pt-BR")}</span>
+              <span style={{fontSize:11}}>{pode?"✔":"✗"}</span>
+            </div>
+          );
+        })}
+      </div>}
+      <div style={{display:"flex",gap:8}}>
+        {sel&&<button onClick={()=>onComprar(sel)} style={{background:"#10b981",color:"#fff",border:"none",borderRadius:6,padding:"7px 16px",cursor:"pointer",fontWeight:700,fontSize:13}}>
+          Comprar {sel.jogador.nome}
+        </button>}
+        <button onClick={onPular} style={{background:"#2a2a3a",color:"#94a3b8",border:"none",borderRadius:6,padding:"7px 16px",cursor:"pointer",fontSize:13}}>
+          Pular
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TelaMercado({times,timesCtrl,onFim}){
+  const [fase,setFase]=useState("vendas");
+  const [posIdx,setPosIdx]=useState(0);
+  const [ctrlIdx,setCtrlIdx]=useState(0);
+  const [mkt,setMkt]=useState(()=>gerarMercado());
+  const [timesState,setTimesState]=useState(()=>times.map(t=>({...t,jogadores:[...t.jogadores]})));
+  const [vendidos,setVendidos]=useState({});
+  const [log,setLog]=useState([]);
+  const [iaDone,setIaDone]=useState(false);
+
+  const pos=ORDEM[posIdx];
+  const ctrlNomes=timesCtrl;
+  const ctrlCompradoresPos=ctrlNomes.filter(n=>vendidos[n]===pos);
+
+  function addLog(msg,tipo="ia"){setLog(l=>[{msg,tipo},...l.slice(0,39)]);}
+
+  // IA vende
+  function iaVende(ts,m,vend){
+    const novoTs=[...ts.map(t=>({...t,jogadores:[...t.jogadores]}))];
+    const novoMkt={...m,...ORDEM.reduce((a,p)=>({...a,[p]:[...m[p]]}),{})};
+    const novoVend={...vend};
+    for(const t of novoTs){
+      if(ctrlNomes.includes(t.nome)) continue;
+      const jPos=t.jogadores.filter(j=>POS_MAP[j.posicao]===pos||j.posicao===pos);
+      if(jPos.length>1){
+        const pior=[...jPos].sort((a,b)=>a.ovr-b.ovr)[0];
+        const preco=Math.max(20,Math.round(pior.ovr*0.8));
+        t.jogadores=t.jogadores.filter(j=>j!==pior);
+        t.saldo+=preco;
+        novoMkt[pos]=[...novoMkt[pos],{jogador:pior,preco,clube_origem:t.nome,faixa:"livre",estrelas:pior.potencial||2}];
+        novoVend[t.nome]=pos;
+        addLog(`[IA] ${t.nome} vendeu ${pior.nome} (${pos} OVR:${pior.ovr}) por ${preco.toLocaleString("pt-BR")} pts`);
+      }
+    }
+    return [novoTs,novoMkt,novoVend];
+  }
+
+  // IA compra
+  function iaCompra(ts,m){
+    const novoTs=[...ts.map(t=>({...t,jogadores:[...t.jogadores]}))];
+    const novoMkt={...m,...ORDEM.reduce((a,p)=>({...a,[p]:[...m[p]]}),{})};
+    for(const t of novoTs){
+      if(ctrlNomes.includes(t.nome)) continue;
+      const fila=novoMkt[pos].filter(e=>e.clube_origem!==t.nome&&e.preco<=t.saldo*0.6);
+      if(!fila.length) continue;
+      const melhor=fila.reduce((b,e)=>e.jogador.ovr>b.jogador.ovr?e:b);
+      t.jogadores.push({...melhor.jogador});
+      t.saldo-=melhor.preco;
+      novoMkt[pos]=novoMkt[pos].filter(e=>e!==melhor);
+      addLog(`[IA] ${t.nome} comprou ${melhor.jogador.nome} (${pos} OVR:${melhor.jogador.ovr}) por ${melhor.preco.toLocaleString("pt-BR")} pts`);
+    }
+    return [novoTs,novoMkt];
+  }
+
+  function avancarFaseVendas(){
+    if(!iaDone){
+      // Roda IA para esta posição
+      const [nt,nm,nv]=iaVende(timesState,mkt,vendidos);
+      setTimesState(nt);setMkt(nm);setVendidos(nv);setIaDone(true);
+      // Se nenhum ctrl nesta pos, vai para compras
+      const ctrlNestPos=ctrlNomes.filter(n=>nv[n]===pos);
+      if(ctrlNestPos.length===0){
+        const [nt2,nm2]=iaCompra(nt,nm);
+        setTimesState(nt2);setMkt(nm2);
+        proximaPos();
+      }
+      return;
+    }
+    // Todos ctrl já venderam — IA compra e avança
+    const [nt2,nm2]=iaCompra(timesState,mkt);
+    setTimesState(nt2);setMkt(nm2);
+    proximaPos();
+  }
+
+  function proximaPos(){
+    setIaDone(false);
+    if(posIdx<ORDEM.length-1){
+      setPosIdx(i=>i+1);
+      setCtrlIdx(0);
+      setFase("vendas");
+    } else {
+      // Fim — subida de base
+      const novoTs=timesState.map(t=>{
+        const vend=vendidos[t.nome];
+        if(!vend) return t;
+        const comprou=t.jogadores.some(j=>POS_MAP[j.posicao]===vend||j.posicao===vend);
+        return t;
+      });
+      onFim(novoTs);
+    }
+  }
+
+  const clubeAtual=timesState.find(t=>t.nome===ctrlNomes[ctrlIdx]);
+
+  function handleVender(jogador,preco,posVenda){
+    if(!clubeAtual) return;
+    const novoTs=timesState.map(t=>{
+      if(t.nome!==clubeAtual.nome) return t;
+      return {...t,jogadores:t.jogadores.filter(j=>j!==jogador),saldo:t.saldo+preco};
+    });
+    const novoMkt={...mkt,[posVenda]:[...mkt[posVenda],{jogador,preco,clube_origem:clubeAtual.nome,faixa:"livre",estrelas:jogador.potencial||2}]};
+    const novoVend={...vendidos,[clubeAtual.nome]:posVenda};
+    addLog(`[MESTRE] ${clubeAtual.nome} vendeu ${jogador.nome} (${posVenda}) por ${preco.toLocaleString("pt-BR")} pts`,"mestre");
+    setTimesState(novoTs);setMkt(novoMkt);setVendidos(novoVend);
+    avancarCtrl(novoVend,novoTs,novoMkt);
+  }
+
+  function handlePularVenda(){
+    avancarCtrl(vendidos,timesState,mkt);
+  }
+
+  function avancarCtrl(vend,ts,m){
+    if(ctrlIdx<ctrlNomes.length-1){
+      setCtrlIdx(i=>i+1);
+    } else {
+      // Todos ctrl passaram — IA vende e depois compras
+      const [nt,nm,nv]=iaVende(ts,m,vend);
+      setTimesState(nt);setMkt(nm);setVendidos(nv);setIaDone(true);
+      setFase("compras");setCtrlIdx(0);
+    }
+  }
+
+  function handleComprar(entrada){
+    if(!clubeAtual) return;
+    const novoTs=timesState.map(t=>{
+      if(t.nome!==clubeAtual.nome) return t;
+      return {...t,jogadores:[...t.jogadores,{...entrada.jogador}],saldo:t.saldo-entrada.preco};
+    });
+    const novoMkt={...mkt,[pos]:mkt[pos].filter(e=>e!==entrada)};
+    addLog(`[MESTRE] ${clubeAtual.nome} comprou ${entrada.jogador.nome} (${pos} OVR:${entrada.jogador.ovr}) por ${entrada.preco.toLocaleString("pt-BR")} pts`,"mestre");
+    setTimesState(novoTs);setMkt(novoMkt);
+    avancarCtrlCompra(novoTs,novoMkt);
+  }
+
+  function handlePularCompra(){
+    avancarCtrlCompra(timesState,mkt);
+  }
+
+  function avancarCtrlCompra(ts,m){
+    const ctrlNestPos=ctrlNomes.filter(n=>vendidos[n]===pos);
+    if(ctrlIdx<ctrlNestPos.length-1){
+      setCtrlIdx(i=>i+1);
+    } else {
+      // IA compra e próxima posição
+      const [nt2,nm2]=iaCompra(ts,m);
+      setTimesState(nt2);setMkt(nm2);
+      if(posIdx<ORDEM.length-1){
+        setPosIdx(i=>i+1);setCtrlIdx(0);setFase("vendas");setIaDone(false);
+      } else {
+        onFim(nt2);
+      }
+    }
+  }
+
+  const ctrlNestPos=ctrlNomes.filter(n=>vendidos[n]===pos);
+  const clubeCompraAtual=fase==="compras"?timesState.find(t=>t.nome===ctrlNestPos[ctrlIdx]):null;
+
+  return(
+    <div style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:12}}>
+      <div>
+        <div style={{background:"#0d0d1a",border:"1px solid #2a2a3a",borderRadius:8,padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
+          {ORDEM.map((p,i)=>(
+            <div key={p} style={{display:"flex",alignItems:"center",gap:6}}>
+              <div style={{width:28,height:28,borderRadius:"50%",background:i<posIdx?"#10b981":i===posIdx?COR_POS[p]:"#2a2a3a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:i<posIdx||i===posIdx?"#fff":"#475569"}}>{p}</div>
+              {i<ORDEM.length-1&&<div style={{width:20,height:2,background:i<posIdx?"#10b981":"#2a2a3a"}}/>}
+            </div>
+          ))}
+          <span style={{marginLeft:"auto",fontSize:12,color:"#64748b"}}>{fase==="vendas"?"Vendas":"Compras"}</span>
+        </div>
+
+        {fase==="vendas"&&clubeAtual&&(
+          <TelaVenda clube={clubeAtual} mkt={mkt} onVender={handleVender} onPular={handlePularVenda}/>
+        )}
+        {fase==="vendas"&&!clubeAtual&&(
+          <div style={{background:"#13131f",border:"1px solid #2a2a3a",borderRadius:10,padding:20,textAlign:"center"}}>
+            <div style={{color:"#64748b",marginBottom:12}}>IA processando vendas de {pos}...</div>
+            <button onClick={avancarFaseVendas} style={{background:"#3b82f6",color:"#fff",border:"none",borderRadius:6,padding:"8px 20px",cursor:"pointer",fontWeight:700}}>
+              Avançar para Compras →
+            </button>
+          </div>
+        )}
+        {fase==="compras"&&clubeCompraAtual&&(
+          <TelaCompra clube={clubeCompraAtual} pos={pos} mkt={mkt} onComprar={handleComprar} onPular={handlePularCompra}/>
+        )}
+        {fase==="compras"&&!clubeCompraAtual&&(
+          <div style={{background:"#13131f",border:"1px solid #2a2a3a",borderRadius:10,padding:20,textAlign:"center"}}>
+            <div style={{color:"#64748b",marginBottom:12}}>Nenhum time controlado vendeu {pos}.</div>
+            <button onClick={()=>{
+              const [nt2,nm2]=iaCompra(timesState,mkt);
+              setTimesState(nt2);setMkt(nm2);
+              if(posIdx<ORDEM.length-1){setPosIdx(i=>i+1);setCtrlIdx(0);setFase("vendas");setIaDone(false);}
+              else onFim(nt2);
+            }} style={{background:"#3b82f6",color:"#fff",border:"none",borderRadius:6,padding:"8px 20px",cursor:"pointer",fontWeight:700}}>
+              Próxima posição →
+            </button>
+          </div>
+        )}
+
+        {/* Mercado atual */}
+        <div style={{background:"#13131f",border:"1px solid #2a2a3a",borderRadius:10,padding:12,marginTop:12}}>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:8,color:"#f8fafc"}}>Mercado — {pos} ({(mkt[pos]||[]).length} disponíveis)</div>
+          <div style={{display:"flex",flexDirection:"column",gap:3}}>
+            {[...(mkt[pos]||[])].sort((a,b)=>b.jogador.ovr-a.jogador.ovr).slice(0,6).map((e,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 8px",background:"#1a1a2e",borderRadius:5}}>
+                <span style={{fontSize:11,width:18,color:"#64748b"}}>{FAIXA_L[e.faixa]}</span>
+                <span style={{fontSize:12}}>{ESTRELA[e.estrelas]}</span>
+                <span style={{fontSize:12,flex:1,color:"#e2e8f0"}}>{e.jogador.nome}</span>
+                <OvrBadge ovr={e.jogador.ovr}/>
+                <span style={{fontSize:11,color:"#94a3b8"}}>{e.preco.toLocaleString("pt-BR")}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Log */}
+      <div style={{background:"#13131f",border:"1px solid #2a2a3a",borderRadius:10,padding:12,maxHeight:600,overflowY:"auto"}}>
+        <div style={{fontWeight:700,fontSize:12,marginBottom:8,color:"#f8fafc"}}>Log</div>
+        {log.map((l,i)=>(
+          <div key={i} style={{fontSize:11,padding:"3px 0",borderBottom:"1px solid #1a1a2e",
+            color:l.tipo==="mestre"?"#f59e0b":l.tipo==="ia"?"#60a5fa":"#10b981"}}>
+            {l.msg}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN APP
+// ══════════════════════════════════════════════════════════════════════════════
+export default function App(){
+  const [tela,setTela]=useState("config"); // config|jogo|mercado|elenco|tabela
+  const [timesCtrl,setTimesCtrl]=useState(["Flamengo"]);
+  const [times,setTimes]=useState(()=>TIMES_INIT.map(t=>({...t})));
+  const [rodada,setRodada]=useState(0);
+  const [calendario]=useState(()=>gerarCalendario(TIMES_INIT));
+  const [resultados,setResultados]=useState([]);
+  const [clubeSel,setClubeSel]=useState(null);
+  const [editJog,setEditJog]=useState(null);
+
+  const s={
+    wrap:{minHeight:"100vh",background:"#080810",color:"#e2e8f0",fontFamily:"'Segoe UI',system-ui,sans-serif"},
+    nav:{background:"#0d0d1a",borderBottom:"1px solid #1e1e3a",display:"flex",alignItems:"center",gap:4,padding:"8px 16px"},
+    navBtn:(t)=>({background:tela===t?"#3b82f6":"transparent",color:tela===t?"#fff":"#64748b",border:"none",borderRadius:6,padding:"6px 14px",cursor:"pointer",fontWeight:600,fontSize:13}),
+    card:{background:"#13131f",border:"1px solid #1e1e3a",borderRadius:10,padding:16,marginBottom:12},
+    btn:(c)=>({background:c||"#3b82f6",color:"#fff",border:"none",borderRadius:6,padding:"7px 16px",cursor:"pointer",fontWeight:700,fontSize:13}),
+  };
+
+  function simularRodada(){
+    if(rodada>=calendario.length) return;
+    const jog=calendario[rodada];
+    const novosTimes=[...times.map(t=>({...t,estatisticas:{...t.estatisticas}}))];
+    const novosRes=[];
+    for(const [ai,bi] of jog){
+      const a=novosTimes[ai],b=novosTimes[bi];
+      const [ga,gb]=simPartida(a,b);
+      a.estatisticas.gols_pro+=ga;a.estatisticas.gols_contra+=gb;
+      b.estatisticas.gols_pro+=gb;b.estatisticas.gols_contra+=ga;
+      if(ga>gb){a.estatisticas.pontos+=3;a.estatisticas.vitorias++;b.estatisticas.derrotas++;}
+      else if(ga<gb){b.estatisticas.pontos+=3;b.estatisticas.vitorias++;a.estatisticas.derrotas++;}
+      else{a.estatisticas.pontos++;b.estatisticas.pontos++;a.estatisticas.empates++;b.estatisticas.empates++;}
+      novosRes.push({a:a.nome,b:b.nome,ga,gb});
+    }
+    setTimes(novosTimes);
+    setResultados(r=>[...r,{rodada:rodada+1,jogos:novosRes}]);
+    setRodada(r=>r+1);
+  }
+
+  const tabela=[...times].sort((a,b)=>
+    b.estatisticas.pontos-a.estatisticas.pontos||
+    (b.estatisticas.gols_pro-b.estatisticas.gols_contra)-(a.estatisticas.gols_pro-a.estatisticas.gols_contra)||
+    b.estatisticas.gols_pro-a.estatisticas.gols_pro
+  );
+
+  return(
+    <div style={s.wrap}>
+      <div style={s.nav}>
+        <span style={{fontWeight:800,fontSize:16,color:"#f8fafc",marginRight:8}}>⚽ FM BR</span>
+        {tela!=="config"&&<>
+          <button style={s.navBtn("jogo")} onClick={()=>setTela("jogo")}>Rodadas</button>
+          <button style={s.navBtn("tabela")} onClick={()=>setTela("tabela")}>Tabela</button>
+          <button style={s.navBtn("elenco")} onClick={()=>setTela("elenco")}>Elencos</button>
+          <button style={s.navBtn("mercado")} onClick={()=>setTela("mercado")}>Mercado</button>
+        </>}
+        <span style={{marginLeft:"auto",fontSize:12,color:"#475569"}}>Rodada {rodada}/{calendario.length}</span>
+      </div>
+
+      <div style={{padding:16}}>
+
+        {/* CONFIG */}
+        {tela==="config"&&(
+          <div style={{maxWidth:600,margin:"0 auto"}}>
+            <div style={{fontSize:24,fontWeight:800,color:"#f8fafc",marginBottom:4}}>Football Master Brasil</div>
+            <div style={{color:"#64748b",marginBottom:20}}>Simulador de temporada — Brasileirão</div>
+            <div style={s.card}>
+              <div style={{fontWeight:700,marginBottom:10}}>Seus times (controle total)</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:16}}>
+                {TIMES_INIT.map(t=>(
+                  <button key={t.nome} onClick={()=>setTimesCtrl(p=>p.includes(t.nome)?p.filter(x=>x!==t.nome):[...p,t.nome])} style={{
+                    background:timesCtrl.includes(t.nome)?"#3b82f6":"#1e1e2e",
+                    color:timesCtrl.includes(t.nome)?"#fff":"#64748b",
+                    border:`1px solid ${timesCtrl.includes(t.nome)?"#3b82f6":"#2a2a3a"}`,
+                    borderRadius:6,padding:"5px 12px",cursor:"pointer",fontWeight:600,fontSize:12
+                  }}>{t.nome}</button>
+                ))}
+              </div>
+              <div style={{fontSize:12,color:"#475569",marginBottom:16}}>{timesCtrl.length} time(s) selecionado(s)</div>
+              <button style={s.btn("#10b981")} onClick={()=>setTela("jogo")}>
+                Iniciar Temporada →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* RODADAS */}
+        {tela==="jogo"&&(
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div>
+              <div style={s.card}>
+                <div style={{fontWeight:700,marginBottom:10,fontSize:15}}>Rodada {rodada+1} / {calendario.length}</div>
+                {rodada<calendario.length?(
+                  <>
+                    <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:12}}>
+                      {calendario[rodada]?.map(([ai,bi],i)=>(
+                        <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",background:"#1a1a2e",borderRadius:6}}>
+                          <span style={{fontSize:13,fontWeight:timesCtrl.includes(times[ai]?.nome)?700:400,color:timesCtrl.includes(times[ai]?.nome)?"#f59e0b":"#e2e8f0"}}>{times[ai]?.nome}</span>
+                          <span style={{color:"#475569",fontSize:12}}>vs</span>
+                          <span style={{fontSize:13,fontWeight:timesCtrl.includes(times[bi]?.nome)?700:400,color:timesCtrl.includes(times[bi]?.nome)?"#f59e0b":"#e2e8f0"}}>{times[bi]?.nome}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button style={s.btn()} onClick={simularRodada}>Simular Rodada →</button>
+                  </>
+                ):<div style={{color:"#10b981",fontWeight:700}}>Temporada encerrada! Vá ao Mercado para contratar.</div>}
+              </div>
+            </div>
+            <div>
+              {resultados.slice(-3).reverse().map((r,ri)=>(
+                <div key={ri} style={{...s.card,marginBottom:8}}>
+                  <div style={{fontWeight:700,fontSize:12,color:"#64748b",marginBottom:6}}>Rodada {r.rodada}</div>
+                  {r.jogos.map((j,i)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",borderBottom:"1px solid #1e1e2e",fontSize:12}}>
+                      <span style={{flex:1,textAlign:"right",color:timesCtrl.includes(j.a)?"#f59e0b":"#e2e8f0"}}>{j.a}</span>
+                      <span style={{margin:"0 10px",fontWeight:700,color:"#f8fafc"}}>{j.ga} – {j.gb}</span>
+                      <span style={{flex:1,color:timesCtrl.includes(j.b)?"#f59e0b":"#e2e8f0"}}>{j.b}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TABELA */}
+        {tela==="tabela"&&(
+          <div style={s.card}>
+            <div style={{fontWeight:800,fontSize:15,marginBottom:12}}>Classificação — Brasileirão</div>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{fontSize:11,color:"#64748b",borderBottom:"1px solid #2a2a3a"}}>
+                  {["#","Time","Pts","J","V","E","D","GP","GC","SG"].map(h=>(
+                    <td key={h} style={{padding:"4px 8px",textAlign:h==="#"||h==="Time"?"left":"center"}}>{h}</td>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tabela.map((t,i)=>{
+                  const st=t.estatisticas;
+                  const j=st.vitorias+st.empates+st.derrotas;
+                  const sg=st.gols_pro-st.gols_contra;
+                  const isCtrl=timesCtrl.includes(t.nome);
+                  return(
+                    <tr key={t.nome} style={{borderBottom:"1px solid #1a1a2e",background:isCtrl?"#1a1a2a":"transparent"}}>
+                      <td style={{padding:"6px 8px",color:"#64748b",fontSize:12}}>{i+1}</td>
+                      <td style={{padding:"6px 8px",fontWeight:isCtrl?700:400,color:isCtrl?"#f59e0b":"#e2e8f0",fontSize:13}}>{t.nome}</td>
+                      <td style={{padding:"6px 8px",textAlign:"center",fontWeight:700,color:"#10b981"}}>{st.pontos}</td>
+                      <td style={{padding:"6px 8px",textAlign:"center",fontSize:12,color:"#94a3b8"}}>{j}</td>
+                      <td style={{padding:"6px 8px",textAlign:"center",fontSize:12,color:"#94a3b8"}}>{st.vitorias}</td>
+                      <td style={{padding:"6px 8px",textAlign:"center",fontSize:12,color:"#94a3b8"}}>{st.empates}</td>
+                      <td style={{padding:"6px 8px",textAlign:"center",fontSize:12,color:"#94a3b8"}}>{st.derrotas}</td>
+                      <td style={{padding:"6px 8px",textAlign:"center",fontSize:12,color:"#94a3b8"}}>{st.gols_pro}</td>
+                      <td style={{padding:"6px 8px",textAlign:"center",fontSize:12,color:"#94a3b8"}}>{st.gols_contra}</td>
+                      <td style={{padding:"6px 8px",textAlign:"center",fontSize:12,color:sg>0?"#10b981":sg<0?"#ef4444":"#94a3b8"}}>{sg>0?"+":""}{sg}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ELENCOS */}
+        {tela==="elenco"&&(
+          <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:12}}>
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              {times.map(t=>(
+                <button key={t.nome} onClick={()=>{setClubeSel(t.nome);setEditJog(null)}} style={{
+                  background:clubeSel===t.nome?"#1e3a5f":"#13131f",
+                  border:`1px solid ${clubeSel===t.nome?"#3b82f6":"#1e1e3a"}`,
+                  color:timesCtrl.includes(t.nome)?"#f59e0b":"#e2e8f0",
+                  borderRadius:6,padding:"7px 12px",cursor:"pointer",textAlign:"left",fontSize:13,fontWeight:timesCtrl.includes(t.nome)?700:400
+                }}>
+                  {timesCtrl.includes(t.nome)?"★ ":""}{t.nome}
+                  <span style={{float:"right",fontSize:11,color:"#475569"}}>{Math.round(t.jogadores.reduce((s,j)=>s+j.ovr,0)/(t.jogadores.length||1))}</span>
+                </button>
+              ))}
+            </div>
+            {clubeSel&&(()=>{
+              const t=times.find(x=>x.nome===clubeSel);
+              if(!t) return null;
+              return(
+                <div style={s.card}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+                    <div>
+                      <div style={{fontWeight:800,fontSize:16}}>{t.nome}</div>
+                      <div style={{fontSize:12,color:"#64748b"}}>Saldo: {t.saldo.toLocaleString("pt-BR")} pts · {t.jogadores.length} jogadores</div>
+                    </div>
+                  </div>
+                  {ORDEM.map(pos=>{
+                    const jogs=t.jogadores.filter(j=>POS_MAP[j.posicao]===pos||j.posicao===pos);
+                    return jogs.length>0&&(
+                      <div key={pos} style={{marginBottom:10}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}><Badge pos={pos}/></div>
+                        {[...jogs].sort((a,b)=>b.ovr-a.ovr).map((j,i)=>(
+                          <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 8px",background:"#1a1a2e",borderRadius:5,marginBottom:2}}>
+                            {editJog===j?(
+                              <div style={{display:"flex",gap:6,flex:1,alignItems:"center"}}>
+                                <span style={{fontSize:12,color:"#94a3b8",width:160}}>{j.nome}</span>
+                                <input defaultValue={j.ovr} onBlur={e=>{
+                                  const v=parseInt(e.target.value);
+                                  if(!isNaN(v)&&v>=50&&v<=99){
+                                    setTimes(ts=>ts.map(tm=>tm.nome!==t.nome?tm:{...tm,jogadores:tm.jogadores.map(jj=>jj===j?{...jj,ovr:v}:jj)}));
+                                  }
+                                }} style={{width:50,background:"#0d0d1a",border:"1px solid #3b82f6",borderRadius:4,color:"#e2e8f0",padding:"2px 6px",fontSize:12}}/>
+         <input defaultValue={j.idade||25} onBlur={e=>{
+                                  const v=parseInt(e.target.value);
+                                  if(!isNaN(v)&&v>=15&&v<=45){
+                                    setTimes(ts=>ts.map(tm=>tm.nome!==t.nome?tm:{...tm,jogadores:tm.jogadores.map(jj=>jj===j?{...jj,idade:v}:jj)}));
+                                  }
+                                }} style={{width:40,background:"#0d0d1a",border:"1px solid #3b82f6",borderRadius:4,color:"#e2e8f0",padding:"2px 6px",fontSize:12}}/>
+                                <button onClick={()=>setEditJog(null)} style={{background:"#10b981",color:"#fff",border:"none",borderRadius:4,padding:"2px 8px",cursor:"pointer",fontSize:11}}>OK</button>
+                              </div>
+                            ):(
+                              <>
+                                <span style={{fontSize:13,flex:1,fontWeight:500}}>{j.nome}</span>
+                                <span style={{fontSize:11,color:"#64748b"}}>{j.idade||"?"}a</span>
+                                <OvrBadge ovr={j.ovr}/>
+                                {timesCtrl.includes(t.nome)&&<button onClick={()=>setEditJog(j)} style={{background:"#2a2a3a",color:"#94a3b8",border:"none",borderRadius:4,padding:"2px 8px",cursor:"pointer",fontSize:11}}>Editar</button>}
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* MERCADO */}
+        {tela==="mercado"&&(
+          <TelaMercado
+            times={times}
+            timesCtrl={timesCtrl}
+            onFim={novosTimes=>{
+              setTimes(novosTimes);
+              setTela("jogo");
+            }}
+          />
+        )}
+
+      </div>
+    </div>
+  );
+}
+  
